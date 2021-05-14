@@ -1,52 +1,70 @@
+resource "aws_iam_role" "codebuild_role" {
+    name = "codebuild-role"
 
-// Bucket for storing build artifacts
-resource "aws_s3_bucket" "codepipeline_bucket" {}
-
-// Pipeline connecting Git source to Codebuild project
-resource "aws_codepipeline" "codepipeline" {
-    name = "morleystuff-site-pipeline"
-    role_arn = aws_iam_role.codepipeline_role.arn
-
-    artifact_store {
-        location = aws_s3_bucket.codepipeline_bucket.bucket
-        type = "S3"
-    }
-
-    stage {
-        name = "Source"
-
-        action {
-            name = "SourceAction"
-            category = "Source"
-            owner = "ThirdParty"
-            provider = "GitHub"
-            version = "1"
-            output_artifacts = [ "source_output" ]
-            configuration = {
-              "Owner" = var.GithubOwner,
-              "Repo" = var.GithubRepo,
-              "Branch" = "master",
-              "OAuthToken" = var.GithubOAuthToken
-            }
+    assume_role_policy = <<EOF
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Principal": {
+                "Service": "codebuild.amazonaws.com"
+            },
+            "Action": "sts:AssumeRole"
         }
-    }
+    ]
+}
+EOF
+}
 
-    stage {
-        name = "Build"
+resource "aws_iam_role_policy" "codebuild_policy" {
+    role = aws_iam_role.codebuild_role.name
 
-        action {
-            name = "BuildAction"
-            category = "Build"
-            owner = "AWS"
-            version = "1"
-            provider = "CodeBuild"
-            input_artifacts = [ "source_output" ]
-            output_artifacts = [ "build_output" ]
-            configuration = {
-              "ProjectName" = aws_codebuild_project.codebuild_project.name
-            }
+    policy = <<POLICY
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:GetBucketVersioning",
+                "s3:PutObject"
+            ],
+            "Resource": [
+                "${aws_s3_bucket.codepipeline_bucket.arn}",
+                "${aws_s3_bucket.codepipeline_bucket.arn}/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "s3:GetObject",
+                "s3:GetObjectVersion",
+                "s3:GetBucketVersioning",
+                "s3:PutObject",
+                "s3:PutObjectAcl"
+            ],
+            "Resource": [
+                "${aws_s3_bucket.deploy_bucket.arn}",
+                "${aws_s3_bucket.deploy_bucket.arn}/*"
+            ]
+        },
+        {
+            "Effect": "Allow",
+            "Action": [
+                "logs:CreateLogGroup",
+                "logs:CreateLogStream",
+                "logs:PutLogEvents",
+                "cloudfront:CreateInvalidation"
+            ],
+            "Resource": "*"
         }
-    }
+    ]
+
+}
+POLICY
 }
 
 // Codebuild project describing build & deployment for site
@@ -106,10 +124,3 @@ EOF
     }
 
 }
-
-
-
-
-
-
-

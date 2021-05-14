@@ -5,7 +5,3 @@ variable "GithubOwner" {
 variable "GithubRepo" {
     default = "morleystuff-site"
 }
-
-variable "GithubOAuthToken" {
-
-}

@@ -33,3 +33,10 @@ module "valheim_server" {
         aws = aws.emea
     }
 }
+
+module "morleystuff_site" {
+    source = "./morleystuff-site"
+    providers = {
+        aws = aws.emea
+    }
+}
