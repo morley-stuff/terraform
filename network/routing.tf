@@ -1,11 +1,8 @@
-resource "aws_vpc" "vpc" {
-    cidr_block = "10.0.0.0/24"
-}
-
 resource "aws_internet_gateway" "inet_gateway" {
     vpc_id = aws_vpc.vpc.id
 }
 
+# Route everything through inet gateways
 resource "aws_route_table" "route" {
     vpc_id = aws_vpc.vpc.id
 
@@ -13,6 +10,16 @@ resource "aws_route_table" "route" {
         gateway_id = aws_internet_gateway.inet_gateway.id
         cidr_block = "0.0.0.0/0"
     }
+}
+
+resource "aws_route_table_association" "subnet1_route" {
+    subnet_id      = aws_subnet.subnet1.id
+    route_table_id = aws_route_table.route.id
+}
+
+resource "aws_route_table_association" "subnet2_route" {
+    subnet_id      = aws_subnet.subnet2.id
+    route_table_id = aws_route_table.route.id
 }
 
 resource "aws_network_acl" "nacl" {
@@ -72,29 +79,5 @@ resource "aws_network_acl" "nacl" {
         rule_no    = "104"
         to_port    = "2456"
     }
-    
 }
 
-resource "aws_subnet" "subnet1" {
-    vpc_id                  = aws_vpc.vpc.id
-    cidr_block              = "10.0.0.0/26"
-    map_public_ip_on_launch = "true"
-}
-
-resource "aws_subnet" "subnet2" {
-    vpc_id                  = aws_vpc.vpc.id
-    cidr_block              = "10.0.0.128/26"
-    map_public_ip_on_launch = "true"
-}
-
-resource "aws_route_table_association" "subnet1_route" {
-    subnet_id      = aws_subnet.subnet1.id
-    route_table_id = aws_route_table.route.id
-}
-
-
-
-resource "aws_route_table_association" "subnet2_route" {
-    subnet_id      = aws_subnet.subnet2.id
-    route_table_id = aws_route_table.route.id
-}
